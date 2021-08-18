@@ -2,7 +2,6 @@
 #include "geo.h"
 #include <iostream>
 #include <sstream>
-#include <set>
 #include <unordered_set>
 
 namespace input
@@ -57,7 +56,7 @@ namespace input
 			std::string fromStop = GetToken(line, ": "s);
 			while (line.find("m "s) != std::string::npos)
 			{
-				double distance = std::stod(GetToken(line, "m to "s));
+				unsigned int distance = std::stoul(GetToken(line, "m to "s));
 				std::string toStop = GetToken(line, ", "s);
 				transportCatalogue.AddDistanceBetweenStops(fromStop, toStop, distance);
 			}
@@ -82,8 +81,7 @@ namespace input
 			}
 			std::unordered_set<const Stop *> route;
 			double geographicRouteLength = 0.0;
-			double facticalRouteLength = 0.0;
-			double geographicDistance = 0.0;
+			unsigned int facticalRouteLength = 0;
 			std::string prevStopName;
 			std::string currStopName;
 			size_t stopsOnRoute = 0;
@@ -127,7 +125,7 @@ namespace input
 			}
 
 			transportCatalogue.AddBus(busNumber, routeType, route.size(), stopsOnRoute, facticalRouteLength, 
-				facticalRouteLength / geographicRouteLength);
+				static_cast<double>(facticalRouteLength) / geographicRouteLength);
 
 			for (const auto& stop : route)
 			{

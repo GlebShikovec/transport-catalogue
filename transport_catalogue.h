@@ -24,7 +24,7 @@ struct Bus
 	ERouteType routeType;
 	size_t uniqueStops;
 	size_t stopsOnRoute;
-	double facticalRouteLength;
+	unsigned int facticalRouteLength;
 	double routeCurvature;
 };
 
@@ -40,7 +40,7 @@ public:
 struct PairPtrHash
 {
 	template <class T1, class T2>
-	std::size_t operator () (const std::pair<T1, T2>& p) const
+	std::size_t operator() (const std::pair<T1, T2>& p) const
 	{
 		auto h1 = std::hash<const void*>{}(p.first);
 		auto h2 = std::hash<const void*>{}(p.second);
@@ -55,21 +55,21 @@ class TransportCatalogue
 {
 public:
 	void AddBus(std::string busNumber, ERouteType routeType, size_t uniqueStops, size_t stopsOnRoute, 
-		double facticalRouteLength, double routeCurvature);
+		unsigned int facticalRouteLength, double routeCurvature);
 	void AddStop(std::string name, double latitude, double longitude);
 	void AddBusRelatedToStop(const Stop* stopPtr, const std::string& busNumber);
 	const Bus* FindBus(const std::string& name) const;
 	const Stop* FindStop(const std::string& name) const;
-	std::tuple<size_t, size_t, double, double> GetRouteInfo(const Bus* ptr) const;
+	std::tuple<size_t, size_t, unsigned int, double> GetRouteInfo(const Bus* ptr) const;
 	const std::set<const Bus*, CmpBuses>* GetBusesRelatedToStop(const Stop* ptr) const;
 
-	void AddDistanceBetweenStops(const std::string& fromStop, const std::string& toStop, double distance);
-	double GetDistanceBetweenStops(const std::string& fromStop, const std::string& toStop);
+	void AddDistanceBetweenStops(const std::string& fromStop, const std::string& toStop, unsigned int distance);
+	unsigned int GetDistanceBetweenStops(const std::string& fromStop, const std::string& toStop);
 private:
 	std::unordered_map<std::string, const Bus*> m_buses;
 	std::deque<Bus> m_busesInfo;
 	std::unordered_map<std::string, const Stop*> m_stops;
 	std::deque<Stop> m_stopsCoords;
 	std::unordered_map<const Stop*, std::set<const Bus*, CmpBuses>> m_busesRelatedToStop;
-	std::unordered_map<std::pair<const Stop*, const Stop*>, double, PairPtrHash> m_stopsDistances;
+	std::unordered_map<std::pair<const Stop*, const Stop*>, unsigned int, PairPtrHash> m_stopsDistances;
 };
