@@ -2,6 +2,7 @@
 #include "geo.h"
 #include <iostream>
 #include <sstream>
+#include <set>
 #include <unordered_set>
 
 namespace input
@@ -48,6 +49,8 @@ namespace input
 			}
 		}
 
+		//auto cmpBuses = [](const Bus* a, const Bus* b) { return a->name < b->name; };
+		std::unordered_map<const Stop*, std::set<const Bus*, CmpBuses>> busesRelatedToStop;
 		while (std::getline(ss_buses, line))
 		{
 			std::string busNumber = GetToken(line, ": "s);
@@ -98,7 +101,12 @@ namespace input
 				routeLength *= 2;
 			}
 
-			transportCatalogue.AddBus(busNumber, std::move(route), routeType, route.size(), stopsOnRoute, routeLength);
+			transportCatalogue.AddBus(busNumber, routeType, route.size(), stopsOnRoute, routeLength);
+
+			for (const auto& stop : route)
+			{
+				transportCatalogue.AddBusRelatedToStop(stop, busNumber);
+			}
 		}
 	}
 }
