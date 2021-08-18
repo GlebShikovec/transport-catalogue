@@ -32,9 +32,10 @@ namespace stat_output
 				const Bus* bus = transportCatalogue.FindBus(request);
 				if (bus != nullptr)
 				{
-					auto [uniqueStops, stopsOnRoute, routeLength] = transportCatalogue.GetRouteInfo(bus);
+					auto [uniqueStops, stopsOnRoute, routeLength, curvature] = transportCatalogue.GetRouteInfo(bus);
 					std::cout << std::setprecision(6) << "Bus " << request << ": " << stopsOnRoute << " stops on route, "
-						<< uniqueStops << " unique stops, " << routeLength << " route length" << std::endl;
+						<< uniqueStops << " unique stops, " << routeLength << " route length, " 
+						<< curvature << " curvature" << std::endl;
 				}
 				else
 				{

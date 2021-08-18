@@ -20,14 +20,15 @@ namespace input
 	double ComputeDistanceBetweenStopsInRoute(const TransportCatalogue& transportCatalogue, 
 		const std::string& prevStopName, const std::string& currStopName)
 	{
-		auto prevStop = transportCatalogue.FindStop(prevStopName);
-		auto currStop = transportCatalogue.FindStop(currStopName);
-		return ComputeDistance({ prevStop->latitude, prevStop->longitude }, { currStop->latitude, currStop->longitude });
+		return ComputeDistance(transportCatalogue.FindStop(prevStopName)->coords,
+			transportCatalogue.FindStop(currStopName)->coords);
 	}
 
 	void UpdateTransportCatalogue(TransportCatalogue& transportCatalogue)
 	{
-		std::stringstream ss_buses;
+		// Stops processing.
+		std::stringstream ssBusRequests;
+		std::stringstream ssStopRequests;
 		std::string line;
 		std::getline(std::cin, line);
 		size_t numberOfRequests = std::stoul(line);
@@ -40,18 +41,30 @@ namespace input
 			{
 				std::string stopName = GetToken(line, ": "s);
 				double latitude = std::stod(GetToken(line, ", "s));
-				double longitude = std::stod(line);
+				double longitude = std::stod(GetToken(line, ", "s));
+				ssStopRequests << stopName << ": "s << line << std::endl;
 				transportCatalogue.AddStop(std::move(stopName), latitude, longitude);
 			}
 			else if (requestType == "Bus"s)
 			{
-				ss_buses << std::move(line) << std::endl;
+				ssBusRequests << std::move(line) << std::endl;
 			}
 		}
 
-		//auto cmpBuses = [](const Bus* a, const Bus* b) { return a->name < b->name; };
-		std::unordered_map<const Stop*, std::set<const Bus*, CmpBuses>> busesRelatedToStop;
-		while (std::getline(ss_buses, line))
+		// Process distances between stops.
+		while (std::getline(ssStopRequests, line))
+		{
+			std::string fromStop = GetToken(line, ": "s);
+			while (line.find("m "s) != std::string::npos)
+			{
+				double distance = std::stod(GetToken(line, "m to "s));
+				std::string toStop = GetToken(line, ", "s);
+				transportCatalogue.AddDistanceBetweenStops(fromStop, toStop, distance);
+			}
+		}
+
+		// Process buses and related stops.
+		while (std::getline(ssBusRequests, line))
 		{
 			std::string busNumber = GetToken(line, ": "s);
 			ERouteType routeType;
@@ -68,7 +81,9 @@ namespace input
 				delimiter = " - "s;
 			}
 			std::unordered_set<const Stop *> route;
-			double routeLength = 0.0;
+			double geographicRouteLength = 0.0;
+			double facticalRouteLength = 0.0;
+			double geographicDistance = 0.0;
 			std::string prevStopName;
 			std::string currStopName;
 			size_t stopsOnRoute = 0;
@@ -79,7 +94,13 @@ namespace input
 				route.emplace(transportCatalogue.FindStop(currStopName));
 				if (stopsOnRoute)
 				{
-					routeLength += ComputeDistanceBetweenStopsInRoute(transportCatalogue, prevStopName, currStopName);
+					// TODO DRY
+					geographicRouteLength += ComputeDistanceBetweenStopsInRoute(transportCatalogue, prevStopName, currStopName);;
+					facticalRouteLength += transportCatalogue.GetDistanceBetweenStops(prevStopName, currStopName);
+					if (routeType == ERouteType::Pendulum)
+					{
+						facticalRouteLength += transportCatalogue.GetDistanceBetweenStops(currStopName, prevStopName);
+					}
 				}
 				else
 				{
@@ -90,18 +111,23 @@ namespace input
 			if (routeType == ERouteType::Circular)
 			{
 				++stopsOnRoute;
-				routeLength += ComputeDistanceBetweenStopsInRoute(transportCatalogue, currStopName, firstStopName);
+				geographicRouteLength += ComputeDistanceBetweenStopsInRoute(transportCatalogue, currStopName, firstStopName);
+				facticalRouteLength += transportCatalogue.GetDistanceBetweenStops(currStopName, firstStopName);
 			}
 			else if (routeType == ERouteType::Pendulum)
 			{
 				stopsOnRoute = stopsOnRoute * 2 + 1;
 				prevStopName = std::move(currStopName);
-				route.emplace(transportCatalogue.FindStop(line));
-				routeLength += ComputeDistanceBetweenStopsInRoute(transportCatalogue, prevStopName, line);
-				routeLength *= 2;
+				currStopName = GetToken(line, delimiter);
+				route.emplace(transportCatalogue.FindStop(currStopName));
+				geographicRouteLength += ComputeDistanceBetweenStopsInRoute(transportCatalogue, prevStopName, currStopName);
+				facticalRouteLength += transportCatalogue.GetDistanceBetweenStops(prevStopName, currStopName) + 
+					transportCatalogue.GetDistanceBetweenStops(currStopName, prevStopName);
+				geographicRouteLength *= 2;
 			}
 
-			transportCatalogue.AddBus(busNumber, routeType, route.size(), stopsOnRoute, routeLength);
+			transportCatalogue.AddBus(busNumber, routeType, route.size(), stopsOnRoute, facticalRouteLength, 
+				facticalRouteLength / geographicRouteLength);
 
 			for (const auto& stop : route)
 			{

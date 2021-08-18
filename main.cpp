@@ -7,6 +7,5 @@ int main()
 	TransportCatalogue transportCatalogue;
 	input::UpdateTransportCatalogue(transportCatalogue);
 	stat_output::TransportCatalogueRequests(transportCatalogue);
-
 	return 0;
 }
