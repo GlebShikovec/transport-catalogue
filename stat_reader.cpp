@@ -3,7 +3,7 @@
 #include <string>
 #include <iomanip>
 #include <vector>
-#include <sstream>
+#include <list>
 
 namespace stat_output
 {
@@ -11,46 +11,46 @@ namespace stat_output
 
 	void TransportCatalogueRequests(const TransportCatalogue& transportCatalogue)
 	{
-		std::stringstream requests;
+		std::list<std::string> requests;
 		std::string line;
 		std::getline(std::cin, line);
 		size_t numberOfRequests = std::stoul(line);
 		for (size_t i = 0; i < numberOfRequests; ++i)
 		{
 			std::getline(std::cin, line);
-			requests << std::move(line) << std::endl;
+			requests.emplace_back(std::move(line));
 		}
 
-		while (std::getline(requests, line))
+		for (std::string& request : requests)
 		{
 			std::string delimiter = " "s;
-			size_t pos = line.find(delimiter);
-			std::string requestName = line.substr(0, pos);
-			std::string request = line.substr(pos + delimiter.length());
+			size_t pos = request.find(delimiter);
+			std::string requestName = request.substr(0, pos);
+			std::string requestParam = request.substr(pos + delimiter.length());
 			if (requestName == "Bus"s)
 			{
-				const Bus* bus = transportCatalogue.FindBus(request);
+				const Bus* bus = transportCatalogue.FindBus(requestParam);
 				if (bus != nullptr)
 				{
 					auto [uniqueStops, stopsOnRoute, routeLength, curvature] = transportCatalogue.GetRouteInfo(bus);
-					std::cout << std::setprecision(6) << "Bus " << request << ": " << stopsOnRoute << " stops on route, "
+					std::cout << std::setprecision(6) << "Bus " << requestParam << ": " << stopsOnRoute << " stops on route, "
 						<< uniqueStops << " unique stops, " << routeLength << " route length, " 
 						<< curvature << " curvature" << std::endl;
 				}
 				else
 				{
-					std::cout << "Bus " << request << ": not found" << std::endl;
+					std::cout << "Bus " << requestParam << ": not found" << std::endl;
 				}
 			}
 			else if (requestName == "Stop"s)
 			{
-				const Stop* stop = transportCatalogue.FindStop(request);
+				const Stop* stop = transportCatalogue.FindStop(requestParam);
 				if (stop != nullptr)
 				{
 					auto busesByStop = transportCatalogue.GetBusesRelatedToStop(stop);
 					if (busesByStop != nullptr)
 					{
-						std::cout << "Stop " << request << ": buses";
+						std::cout << "Stop " << requestParam << ": buses";
 						for (const auto& bus : *busesByStop)
 						{
 							std::cout << " " << bus->name;
@@ -59,12 +59,12 @@ namespace stat_output
 					}
 					else
 					{
-						std::cout << "Stop " << request << ": no buses" << std::endl;
+						std::cout << "Stop " << requestParam << ": no buses" << std::endl;
 					}
 				}
 				else
 				{
-					std::cout << "Stop " << request << ": not found" << std::endl;
+					std::cout << "Stop " << requestParam << ": not found" << std::endl;
 				}
 			}
 		}

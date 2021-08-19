@@ -1,8 +1,8 @@
 #include "input_reader.h"
 #include "geo.h"
 #include <iostream>
-#include <sstream>
 #include <unordered_set>
+#include <forward_list>
 
 namespace input
 {
@@ -12,7 +12,7 @@ namespace input
 	{
 		size_t pos = line.find(delimiter);
 		std::string token = std::move(line.substr(0, pos));
-		line.erase(0, pos + delimiter.length());
+		line.erase(0, pos == std::string::npos ? pos : pos + delimiter.length());
 		return token;
 	}
 
@@ -26,8 +26,8 @@ namespace input
 	void UpdateTransportCatalogue(TransportCatalogue& transportCatalogue)
 	{
 		// Stops processing.
-		std::stringstream ssBusRequests;
-		std::stringstream ssStopRequests;
+		std::forward_list<std::pair<std::string, std::string>> stopsRequests;
+		std::forward_list<std::string> busRequests;
 		std::string line;
 		std::getline(std::cin, line);
 		size_t numberOfRequests = std::stoul(line);
@@ -41,35 +41,34 @@ namespace input
 				std::string stopName = GetToken(line, ": "s);
 				double latitude = std::stod(GetToken(line, ", "s));
 				double longitude = std::stod(GetToken(line, ", "s));
-				ssStopRequests << stopName << ": "s << line << std::endl;
-				transportCatalogue.AddStop(std::move(stopName), latitude, longitude);
+				transportCatalogue.AddStop(stopName, latitude, longitude);
+				stopsRequests.emplace_front(std::move(stopName), std::move(line));
 			}
 			else if (requestType == "Bus"s)
 			{
-				ssBusRequests << std::move(line) << std::endl;
+				busRequests.emplace_front(std::move(line));
 			}
 		}
 
 		// Process distances between stops.
-		while (std::getline(ssStopRequests, line))
+		for (auto& stopRequest : stopsRequests)
 		{
-			std::string fromStop = GetToken(line, ": "s);
-			while (line.find("m "s) != std::string::npos)
+			while (stopRequest.second.find("m "s) != std::string::npos)
 			{
-				unsigned int distance = std::stoul(GetToken(line, "m to "s));
-				std::string toStop = GetToken(line, ", "s);
-				transportCatalogue.AddDistanceBetweenStops(fromStop, toStop, distance);
+				unsigned int distance = std::stoul(GetToken(stopRequest.second, "m to "s));
+				std::string toStop = GetToken(stopRequest.second, ", "s);
+				transportCatalogue.AddDistanceBetweenStops(stopRequest.first, toStop, distance);
 			}
 		}
 
 		// Process buses and related stops.
-		while (std::getline(ssBusRequests, line))
+		for (std::string& busRequest : busRequests)
 		{
-			std::string busNumber = GetToken(line, ": "s);
+			std::string busNumber = GetToken(busRequest, ": "s);
 			ERouteType routeType;
 			std::string delimiter;
 			std::string firstStopName;
-			if (line.find(" - "s) == std::string::npos)
+			if (busRequest.find(" - "s) == std::string::npos)
 			{
 				routeType = ERouteType::Circular;
 				delimiter = " > "s;
@@ -85,10 +84,10 @@ namespace input
 			std::string prevStopName;
 			std::string currStopName;
 			size_t stopsOnRoute = 0;
-			for (; line.find(delimiter) != std::string::npos; ++stopsOnRoute)
+			for (; busRequest.find(delimiter) != std::string::npos; ++stopsOnRoute)
 			{
 				prevStopName = std::move(currStopName);
-				currStopName = GetToken(line, delimiter);
+				currStopName = GetToken(busRequest, delimiter);
 				route.emplace(transportCatalogue.FindStop(currStopName));
 				if (stopsOnRoute)
 				{
@@ -116,7 +115,7 @@ namespace input
 			{
 				stopsOnRoute = stopsOnRoute * 2 + 1;
 				prevStopName = std::move(currStopName);
-				currStopName = GetToken(line, delimiter);
+				currStopName = GetToken(busRequest, delimiter);
 				route.emplace(transportCatalogue.FindStop(currStopName));
 				geographicRouteLength += ComputeDistanceBetweenStopsInRoute(transportCatalogue, prevStopName, currStopName);
 				facticalRouteLength += transportCatalogue.GetDistanceBetweenStops(prevStopName, currStopName) + 
