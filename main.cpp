@@ -4,8 +4,11 @@
 
 int main()
 {
+	using namespace transport_catalogue;
+
 	TransportCatalogue transportCatalogue;
-	input::UpdateTransportCatalogue(transportCatalogue);
-	stat_output::TransportCatalogueRequests(transportCatalogue);
+	input_requests_processing::UpdateTransportCatalogue(transportCatalogue);
+	output_requests_processing::TransportCatalogueRequests(transportCatalogue);
+
 	return 0;
 }

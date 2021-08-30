@@ -1,8 +1,11 @@
 #pragma once
+
 #include "transport_catalogue.h"
 
-
-namespace stat_output
+namespace transport_catalogue
 {
-	void TransportCatalogueRequests(const TransportCatalogue& transportCatalogue);
+	namespace output_requests_processing
+	{
+		void TransportCatalogueRequests(const TransportCatalogue& transportCatalogue);
+	}
 }
